@@ -74,8 +74,4 @@ if (!output.url) {
     process.exit();
 }
 
-
-
-console.dir( output );
-
 module.exports = output;
