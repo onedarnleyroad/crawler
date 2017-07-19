@@ -4,7 +4,7 @@ const url = require('url');
 // Store urls Crawled
 var urls = [];
 
-module.exports = function( success, always, parentUrlObj, q ) {
+module.exports = function( success, always, parentUrlObj, q, config ) {
     return function (error, result, done) {
 
 
@@ -43,6 +43,15 @@ module.exports = function( success, always, parentUrlObj, q ) {
                             // If no url, return:
                             if (!toQueueUrl) { return; }
 
+                            // Potentially skip url
+                            if (typeof config.skipUrls === "function") {
+
+                                var skipUrl = config.skipUrls( url.parse( toQueueUrl ));
+
+                                if ( skipUrl ) {
+                                    return;
+                                }
+                            }
 
                             var urlObject = url.parse( toQueueUrl );
 
