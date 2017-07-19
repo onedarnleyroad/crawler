@@ -52,6 +52,10 @@ var makeCallback = require('./callback');
 
 var urlsCrawled = 0;
 var urlsQueued = 0;
+var urlsProcessed = 0;
+var urlsSkipped = 0;
+
+var urls = [];
 
 var callback = makeCallback(
 
@@ -81,11 +85,16 @@ var callback = makeCallback(
         });
 
         urlsCrawled++;
-        console.log( ( "" + urlsCrawled ).green + " crawled, " + ( "" + urlsQueued ).red + " queued");
+
     },
 
     // always
     function( result ) {
+
+        urlsProcessed++;
+        urlsSkipped = urlsProcessed - urlsCrawled;
+
+        console.log( ( urlsCrawled + " crawled, ").green,  (urlsQueued + " queued").red, (urlsSkipped + " skipped").grey);
     },
 
     // parent
@@ -93,9 +102,11 @@ var callback = makeCallback(
 
     // queue function:
     function( u ) {
-        urlsQueued++;
-        c.queue( u );
-
+        if ( urls.indexOf( u ) === -1 ) {
+            urls.push( u );
+            urlsQueued++;
+            c.queue( u );
+        }
     },
 
     // config

@@ -1,78 +1,73 @@
 const colors = require('colors');
 const url = require('url');
 
-// Store urls Crawled
-var urls = [];
 
 module.exports = function( success, always, parentUrlObj, q, config ) {
     return function (error, result, done) {
 
 
-        // Just example the limit:
-        if (urls.length > 10) {
-            done();
-            return;
-        }
-
         try {
             if (error) {
-                console.log( error );
+                if (typeof always === 'function') {
+                   always( result );
+                }
+                console.log( "error", error );
                 return;
             } else {
                 var $ = result.$;
                 var thisUrl = result.request.uri.href;
 
-                if (urls.indexOf( result.request.uri ) === -1) {
+                if (typeof $ === 'function') {
 
-                    if (typeof $ === 'function') {
+                    console.log( ("" + result.statusCode).red, "Crawling:".grey + thisUrl, $('head title').text().green );
 
-                        console.log( ("" + result.statusCode).red, "Crawling:".grey + thisUrl, $('head title').text().green );
+                    if (typeof success === 'function') {
+
+                        success( thisUrl, $, result );
+                    }
+
+                    // Queue more
+                    $('a[href]').each(function(index, a) {
+
+                        var toQueueUrl = $(a).attr('href');
 
 
 
-                        if (typeof success === 'function') {
-                            // urls.push(result.request.uri);
-                            success( thisUrl, $, result );
+                        // If no url, return:
+                        if (!toQueueUrl) { return; }
+
+                        // Potentially skip url
+                        if (typeof config.skipUrls === "function") {
+
+                            var skipUrl = config.skipUrls( url.parse( toQueueUrl ));
+
+                            if ( skipUrl ) {
+                                return;
+                            }
                         }
 
-                        // Queue more
-                        $('a[href]').each(function(index, a) {
+                        var urlObject = url.parse( toQueueUrl );
 
-                            var toQueueUrl = $(a).attr('href');
+                        // ignore blank hash
+                        if (toQueueUrl.substring(0,1) == '#') { return; }
 
-                            // If no url, return:
-                            if (!toQueueUrl) { return; }
+                        if (urlObject.hostname == null ) {
 
-                            // Potentially skip url
-                            if (typeof config.skipUrls === "function") {
+                            // resolve internal url
+                            toQueueUrl = url.resolve(parentUrlObj.href, toQueueUrl);
 
-                                var skipUrl = config.skipUrls( url.parse( toQueueUrl ));
+                            q(toQueueUrl);
 
-                                if ( skipUrl ) {
-                                    return;
-                                }
-                            }
 
-                            var urlObject = url.parse( toQueueUrl );
+                        } else if (parentUrlObj.hostname == urlObject.hostname ) {
+                            // hostname matches, it's internal, so crawl
+                            q(toQueueUrl);
 
-                            // ignore blank hash
-                            if (toQueueUrl.substring(0,1) == '#') { return; }
-
-                            if (urlObject.hostname == null ) {
-
-                                // resolve internal url
-                                toQueueUrl = url.resolve(parentUrlObj.href, toQueueUrl);
-                                q(toQueueUrl);
-
-                            } else if (parentUrlObj.hostname == urlObject.hostname ) {
-                                // hostname matches, it's internal, so crawl
-                                q(toQueueUrl);
-                            } else {
-                                // External link, skip
-                                // console.log( ("Skipping " + toQueueUrl).red );
-                            }
-                        });
-                    }
+                        } else {
+                            // External link, skip
+                            // console.log( ("Skipping " + toQueueUrl).red );
+                        }
+                    });
                 }
             }
 
