@@ -3,67 +3,103 @@ const url = require('url');
 const stringify = require('csv').stringify;
 const fs = require('fs');
 const colors = require('colors');
+const extend = require('extend');
+const path = require('path');
 
-
-const y = require('yargs')
-    .describe('f', 'Load a config file'.blue)
-    .describe('u', 'Load a url'.blue)
-    .describe('o', 'Output to this file (overrides setting in input file)'.blue)
-    .help('h')
-
-const argv = y.argv;
-
-
-var _url = argv.u;
-var _file = argv.f;
-
-
-if (!_url || !_file) {
-    console.log("You must provide an input file or url".red);
-    y.showHelp();
-    process.exit();
-}
-
-
-
-
-if (_file) {
-    const config = require( "./" + _file );
-    const parent = config.url;
-} else {
-    // _url is implied
-    const parent = _url;
-}
-
-if (!parent) {
-    console.log("Error - the URL to crawl is not valid: " + "Url Provided: ".red + parent );
-    process.exit();
-}
-
-const parentUrlObj = url.parse( parent );
-
+//
+const config = require('./args');
+const parentUrlObj = config.urlObject;
+const parent = config.url;
 
 console.log( "Crawling ".grey + parent + "...".green);
 
-if (argv.o) {
-    const logfile = arvg.o;
-} else if (config.logFile) {
-    const logfile = config.logfile;
+// store our output
+var data = [];
+var c;
+
+
+
+/*----------  Create File for Writing  ----------*/
+
+if (!config.dryRun) {
+
+    var logfileExists = fs.existsSync( config.logfile );
+    var logfile = path.parse( config.logfile );
+    var logfileName = config.logfile
+
+    if ( logfileExists && config.rewrite) {
+        console.log( "logfile exists, Rewrite is ".grey + "true".green + ", so emptying ".grey + logfileName.blue);
+        fs.writeFileSync(logfileName, '');
+    } else if (logfileExists) {
+        var timestamp = new Date().getTime();
+
+        // Rename with timestamp added.
+        logfile.name = logfile.name + "_" + timestamp;
+        logfile.base = false;
+        logfileName = path.format( logfile );
+        console.log( "logfile exists, Rewrite is ".grey + "false".red + ", so using output file ".grey + logfileName.blue);
+        fs.writeFileSync(logfileName, '');
+    }
 } else {
-    const logfile = parentUrlObj.hostname + ".txt";
+    console.log("Dry run - not writing to any files".rainbow);
 }
 
-var data = [];
+/*----------  Make Callback to be called when we loop through  ----------*/
 
-fs.writeFileSync(logfile, ''); // setup new file
 
-// Store urls Crawled
-var urlsCrawled = [];
+// makes a callback that executes but also crawls for more links:
+var makeCallback = require('./callback');
 
-// setup CSV writer
-stringifier = stringify({delimiter: ','});
+var callback = makeCallback(
 
-var c = new Crawler({
+    // Success
+    function( thisUrl, $, result ) {
+        // We can assume these are okay, as the
+        // check for these is performed before the success component
+        var row = [
+            thisUrl,
+            $('head title').text()
+        ];
+
+        var urlObj = url.parse( thisUrl );
+        urlObj.path.split('/').forEach(function( chunk ) {
+            if (chunk.trim()) {
+                row.push( chunk );
+            }
+        });
+
+
+        stringify([row], {delimiter: ',', quotedString: true}, function(_err, output){
+            if (!config.dryRun) {
+                fs.appendFile(logfileName, output, function (err) {
+                    if (err) throw err;
+                });
+            }
+        });
+    },
+
+    // always
+    function( result ) {
+    },
+
+    // parent
+    parentUrlObj,
+
+    // queue function:
+    function( u ) {
+        c.queue( u );
+    }
+);
+
+
+
+
+
+
+
+
+
+c = new Crawler({
     skipDuplicates: true,
     // memory craps out if it's done too fast, for big sites,
     // so limiting the rate to 25ms and also thus 1 connection at a time, will
@@ -71,68 +107,7 @@ var c = new Crawler({
     rateLimits: 5,
 
     // This will be called for each crawled page
-
-    callback : function (error, result, done) {
-
-
-        try {
-            if (error) {
-                console.log( error );
-                return;
-            } else {
-                var $ = result.$;
-                var thisUrl = result.request.uri.href;
-
-                if (urlsCrawled.indexOf( result.request.uri ) === -1) {
-
-                    if (typeof $ === 'function') {
-
-                        console.log( ("" + result.statusCode).red, "Crawling:".grey + thisUrl, $('head title').text().green );
-
-                        data.push([ thisUrl, $('head title').text()]);
-
-                        $('a[href]').each(function(index, a) {
-
-                            var toQueueUrl = $(a).attr('href');
-
-                            // If no url, return:
-                            if (!toQueueUrl) { return; }
-
-
-                            var urlObject = url.parse( toQueueUrl );
-
-                            // ignore blank hash
-                            if (toQueueUrl.substring(0,1) == '#') { return; }
-
-                            if (urlObject.hostname == null ) {
-
-                                // resolve internal url
-                                toQueueUrl = url.resolve(parent, toQueueUrl);
-                                c.queue(toQueueUrl);
-
-                            } else if (parentUrlObj.hostname == urlObject.hostname ) {
-                                // hostname matches, it's internal, so crawl
-                                c.queue(toQueueUrl);
-                            } else {
-                                // External link, skip
-                                // console.log( ("Skipping " + toQueueUrl).red );
-                            }
-                        });
-                    }
-                }
-            }
-
-            urlsCrawled.push(result.request.uri);
-
-        } catch(e) {
-            console.log( e );
-        }
-
-        // Done at end, but consider moving this
-        // if we go async.
-        done();
-
-    }
+    callback: callback
 });
 
 c.queue( parent );
@@ -140,7 +115,6 @@ c.queue( parent );
 c.on('drain', function() {
     console.log("Done?");
     stringify(data, function(err, output){
-        fs.writeFileSync(logfile, output); // setup new file
         process.exit();
     });
 

@@ -1,5 +1,5 @@
 
 module.exports = {
-    url: 'http://example.com/'
-    logfile: 'output/example.txt'
+    url: 'http://example.com/',
+    logfile: 'output/example.csv'
 };
