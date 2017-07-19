@@ -50,6 +50,9 @@ if (!config.dryRun) {
 // makes a callback that executes but also crawls for more links:
 var makeCallback = require('./callback');
 
+var urlsCrawled = 0;
+var urlsQueued = 0;
+
 var callback = makeCallback(
 
     // Success
@@ -76,6 +79,9 @@ var callback = makeCallback(
                 });
             }
         });
+
+        urlsCrawled++;
+        console.log( ( "" + urlsCrawled ).green + " crawled, " + ( "" + urlsQueued ).red + " queued");
     },
 
     // always
@@ -87,28 +93,27 @@ var callback = makeCallback(
 
     // queue function:
     function( u ) {
+        urlsQueued++;
         c.queue( u );
-    }
+
+    },
+
+    // config
+    config
 );
 
 
 
 
 
-
-
-
-
-c = new Crawler({
-    skipDuplicates: true,
-    // memory craps out if it's done too fast, for big sites,
-    // so limiting the rate to 25ms and also thus 1 connection at a time, will
-    // generally allow the task to complete.
-    rateLimits: 5,
-
-    // This will be called for each crawled page
+// Create options, but always ensure that callback
+// is overridden
+var crawlerOptions = extend({}, config.crawler, {
     callback: callback
 });
+
+
+c = new Crawler( crawlerOptions );
 
 c.queue( parent );
 
