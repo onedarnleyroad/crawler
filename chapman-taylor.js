@@ -1,6 +1,6 @@
 
 module.exports = {
-    url: 'http://orveda.com',
+    url: 'http://local.chapmantaylor.com',
     skipUrls: function( urlobject ) {
         // return true if url is to be skipped.
         if (!urlobject) {

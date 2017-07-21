@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const Crawler = require("crawler");
 const url = require('url');
 const stringify = require('csv').stringify;
@@ -94,7 +96,7 @@ var callback = makeCallback(
         urlsProcessed++;
         urlsSkipped = urlsProcessed - urlsCrawled;
 
-        console.log( ( urlsCrawled + " crawled, ").green,  (urlsQueued + " queued").red, (urlsSkipped + " skipped").grey);
+        console.log( ( urlsCrawled + " crawled, ").green,  (urlsProcessed + "/" + urlsQueued + " processed").red, (urlsSkipped + " skipped").grey);
     },
 
     // parent

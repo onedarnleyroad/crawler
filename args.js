@@ -12,11 +12,12 @@ const colors = require('colors');
 const extend = require('extend');
 const defaults = require('./default-options');
 const url = require('url');
+const path = require('path');
 
 const y = require('yargs')
-    .describe('f', 'Load a config file'.blue)
-    .describe('u', 'Load a url'.blue)
-    .describe('w', 'If existing logfile is found, empty it and overwrite (instead of creating new file with appended timestamp'.blue)
+    .describe('f', 'Load this config file'.blue)
+    .describe('u', 'Load this url'.blue)
+    .describe('w', 'If existing logfile is found, overwrite it (otherwise timestamp appended file is created)'.blue)
     .describe('o', 'Output to this file (overrides setting in input file)'.blue)
     .describe('d', 'Dry run - don\'t write to a file'.blue)
     .help('h')
@@ -41,7 +42,7 @@ var output = extend({}, defaults);
 
 if (_file) {
     // Clone the output from the config file that was passed:
-    extend(output, require( "./" + _file ) );
+    extend(output, require( process.cwd() + path.sep + _file ) );
 } else {
     // _url is implied to exist:
     output.url = _url;
@@ -54,9 +55,9 @@ output.urlObject = url.parse( output.url );
 // If argument for output file is there, use that,
 // which overrides any defaults or passed in config.
 if (argv.o) {
-    output.logfile = argv.o;
+    output.logfile = process.cwd() + path.sep + argv.o;
 } else if (!output.hasOwnProperty('logfile')) {
-    output.logfile = __dirname + '/output/' + output.urlObject.hostname + ".csv";
+    output.logfile = process.cwd() + '/output/' + output.urlObject.hostname + ".csv";
 }
 
 
