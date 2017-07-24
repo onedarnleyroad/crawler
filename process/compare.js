@@ -1,15 +1,24 @@
 const fuzzy = require('fuzzy');
-
+const colors = require('colors');
 
 
 /*=====================================================
 =            Hard coded Chapman Taylor bit            =
 =====================================================*/
 
+
+var B = {
+    sections: {}
+};
+
+var A = {
+    sections: {}
+}
+
 var _bTransformer = function( row ) {
 
-    var url = row[0];
-    var title = row[1];
+    var url = row[0] || "";
+    var title = row[1] || "";
     var langPrefix = row[2];
 
     // Don't process uploads
@@ -25,53 +34,98 @@ var _bTransformer = function( row ) {
         return false;
     }
 
-    return row.splice(3, row.length );
+    var section = row[3] || "";
+
+    if (!B.sections.hasOwnProperty(section)) {
+        B.sections[section] = [];
+    }
+
+    var thisObj = {
+        section: section,
+        url: url,
+        title: title
+    };
+
+    B.sections[section].push( thisObj );
+
+    return thisObj;
 
 };
 
 
 var _aTransformer = function( row ) {
 
+    var section = row[2] || "";
+    var url = row[0] || "";
+    var title = row[1] || "";
+
+    if (!A.sections.hasOwnProperty( section ) ) {
+        A.sections[section] = [];
+    }
+
+
+
+    A.sections[section].push( {
+        section: section,
+        url: url,
+        title: title
+    } );
 };
 
 
 /*=====  End of Hard coded Chapman Taylor bit  ======*/
 
 
+// Block for 'seconds' seconds. Helps with understanding the logs,
+// but is otherwise totally useless!
+var _wait = function( seconds ) {
+    var waitTill = new Date(new Date().getTime() + seconds * 1000);
+    while(waitTill > new Date()){}
+};
 
 module.exports = function( a, b ) {
 
     var seconds = 0.05;
 
     var list = [];
-    a.forEach( function( r ) {
-        list.push({
-            u: r[0],
-            t: r[1],
-            p: r.splice(2, r.length).join(' ')
-        });
-    });
+    a.forEach( _aTransformer );
 
     var fuzzyOptions = {
         extract: function(e) {
-            return e.u
+            return e.url
         }
     };
+
+    for (var _s in A.sections ) {
+        console.log( _s );
+    }
+
 
     b.forEach( function( r ) {
 
         var bits = _bTransformer(r);
         if (bits) {
-            var s = bits.join(' ');
 
-            var results = fuzzy.filter( s, list, fuzzyOptions );
-            var matches = results.map(function(el) { return el.string; });
+            console.log("Section:".grey, bits.section );
 
-            console.log( r[0], matches.length );
+            if ( A.sections.hasOwnProperty( bits.section ) ) {
+
+                console.log("Searching for " + bits.url.blue + " in " + bits.section.green );
+                var results = fuzzy.filter(bits.title, A.sections[bits.section], fuzzyOptions);
+
+                var matches = results.map(function(el) { return el.string; });
+                console.log(matches);
+                console.log("---------------------------------".grey);
+
+            } else {
+                console.log(("No " + bits.section + " in B").red);
+            }
+
+
+            _wait(0.1);
+
         }
 
-        var waitTill = new Date(new Date().getTime() + seconds * 1000);
-        while(waitTill > new Date()){}
     });
 
 };
