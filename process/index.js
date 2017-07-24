@@ -7,13 +7,14 @@ const fs = require('fs');
 const colors = require('colors');
 const extend = require('extend');
 const path = require('path');
-
+const stringify = csv.stringify;
 const parse =  require('csv-parse');
 
 
 const y = require('yargs')
     .usage('Usage: $0 file1 file2')
     .demandCommand(2)
+    .describe('o', 'Output to this file (will just log if omitted)'.blue)
     .help('h');
 
 const argv = y.argv;
@@ -77,10 +78,16 @@ var p2 = new Promise(function( res, rej, rej ) {
 
 Promise.all([p1,p2]).then(function() {
     var c = require('./compare');
-    c( output1, output2 );
+    var results = c( output1, output2 );
+
+    if (argv.o) {
+        fs.writeFileSync(argv.o, '');
+
+        stringify(results, {delimiter: ',', quotedString: true}, function(_err, output){
+            fs.appendFile(argv.o, output, function (err) {
+                if (err) throw err;
+            });
+        });
+    }
 });
-
-
-
-
 
