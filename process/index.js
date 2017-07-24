@@ -19,6 +19,8 @@ const y = require('yargs')
 
 const argv = y.argv;
 
+console.log( process.cwd() );
+
 const file1 = process.cwd() + path.sep + argv._[0];
 const file2 = process.cwd() + path.sep + argv._[1];
 
