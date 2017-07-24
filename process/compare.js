@@ -1,6 +1,6 @@
-const fuzzy = require('fuzzy');
-const colors = require('colors');
 
+const colors = require('colors');
+const score = require('string-score');
 
 /*=====================================================
 =            Hard coded Chapman Taylor bit            =
@@ -27,12 +27,23 @@ var _bTransformer = function( row ) {
     }
 
     var last = row[ row.length - 1 ];
-    var r = /P[0-9]+/;
+    var r = /P[0-9]+$/i;
 
     // don't return /en/ suffix, or /P23 sufffix
-    if ( last.length == 2 || last.match( r ) ) {
+    if ( last.match( r ) ) {
         return false;
     }
+
+    // Skip non /en suffixes.
+    if ( last.length === 2 && last != 'en') {
+        // console.log( last.rainbow );
+        return false;
+    }
+
+    if (last.length === 2 && last === 'en') {
+        last = row[ row.length - 2 ];
+    }
+
 
     var section = row[3] || "";
 
@@ -40,10 +51,14 @@ var _bTransformer = function( row ) {
         B.sections[section] = [];
     }
 
+    var search = row.splice(3, row.length).join(' ').replace(/\-/g, ' ');
+
     var thisObj = {
         section: section,
+        search: search,
         url: url,
-        title: title
+        title: title,
+        last: last
     };
 
     B.sections[section].push( thisObj );
@@ -59,16 +74,30 @@ var _aTransformer = function( row ) {
     var url = row[0] || "";
     var title = row[1] || "";
 
+    var last = row[ row.length - 1 ];
+
+    var r = /p[0-9]+$/i;
+
+    // don't return /P23 sufffix
+    if ( last.match( r ) ) {
+        return false;
+    }
+
     if (!A.sections.hasOwnProperty( section ) ) {
         A.sections[section] = [];
     }
 
+    var last = row[ row.length - 1 ];
+
+    var search = last.replace(/\-/g, ' ');
 
 
     A.sections[section].push( {
         section: section,
+        search: search,
         url: url,
-        title: title
+        title: title,
+        last: last
     } );
 };
 
@@ -83,6 +112,12 @@ var _wait = function( seconds ) {
     while(waitTill > new Date()){}
 };
 
+
+var c = 0;
+
+
+var results = [];
+
 module.exports = function( a, b ) {
 
     var seconds = 0.05;
@@ -92,40 +127,66 @@ module.exports = function( a, b ) {
 
     var fuzzyOptions = {
         extract: function(e) {
-            return e.url
+            return e.search
         }
     };
 
     for (var _s in A.sections ) {
-        console.log( _s );
+        // console.log( _s );
     }
 
 
     b.forEach( function( r ) {
 
+
+
         var bits = _bTransformer(r);
+
         if (bits) {
 
-            console.log("Section:".grey, bits.section );
+            // console.log("Section:".grey, bits.section );
 
             if ( A.sections.hasOwnProperty( bits.section ) ) {
 
-                console.log("Searching for " + bits.url.blue + " in " + bits.section.green );
-                var results = fuzzy.filter(bits.title, A.sections[bits.section], fuzzyOptions);
+                // console.log("Searching for " + bits.search.blue + " in " + bits.section.green );
 
-                var matches = results.map(function(el) { return el.string; });
-                console.log(matches);
-                console.log("---------------------------------".grey);
+                // console.log("--URLS:-------------------------------".grey);
+                for (var i in A.sections[bits.section] ) {
+                    var row = A.sections[bits.section][i];
+
+                    if (row) {
+                        var _score = score( bits.last, row.last, 0.25 );
+                        // if (_score > 0.2) {
+                            if (_score > 0.5 && _score < 1) {
+                                console.log( ( _score + "").blue, bits.url.green, row.url.red );
+                                results.push({
+                                    score: _score,
+                                    old: bits,
+                                    new: row
+                                });
+
+                            } else if (_score === 1) {
+
+                            }
+
+                        // }
+                    }
+
+                }
+                // console.log("--------------------------------------".grey);
+
 
             } else {
-                console.log(("No " + bits.section + " in B").red);
+                // console.log(("No " + bits.section + " in B").red);
             }
 
 
-            _wait(0.1);
+
 
         }
 
     });
+
+    console.log( results.length );
 
 };
