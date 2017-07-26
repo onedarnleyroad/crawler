@@ -12,7 +12,7 @@ const parse =  require('csv-parse');
 
 
 const y = require('yargs')
-    .usage('Usage: $0 file1 file2')
+    .usage('Usage: $0 oldsite.csv newsite.csv')
     .demandCommand(2)
     .describe('o', 'Output to this file (will just log if omitted)'.blue)
     .help('h');
@@ -81,6 +81,21 @@ var p2 = new Promise(function( res, rej, rej ) {
 Promise.all([p1,p2]).then(function() {
     var c = require('./compare');
     var results = c( output1, output2 );
+
+    // Reorder the results by section
+    results.sort(function(a, b) {
+        var sectionA = a[3].toUpperCase(); // ignore upper and lowercase
+        var sectionB = b[3].toUpperCase(); // ignore upper and lowercase
+        if (sectionA < sectionB) {
+            return -1;
+        }
+        if (sectionA > sectionB) {
+            return 1;
+        }
+
+        // names must be equal
+        return 0;
+    });
 
     if (argv.o) {
         fs.writeFileSync(argv.o, '');
