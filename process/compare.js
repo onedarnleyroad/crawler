@@ -148,21 +148,31 @@ module.exports = function( a, b ) {
                                     _score,
                                     bits.url,
                                     row.url,
-                                    bits.section
+                                    bits.section,
+                                    row.section
                                 ]);
                             }
                         // }
                     }
                 }
 
-            }
-
-            if (!match) {
-                results.push([
+                if (!match) {
+                    results.push([
+                        0,
+                        bits.url,
+                        false,
+                        bits.section,
+                        bits.section
+                    ]);
+                }
+            } else {
+                console.log("No matches or matching section for " + bits.url.red);
+                 results.push([
                     0,
                     bits.url,
                     false,
-                    bits.section
+                    bits.section,
+                    false
                 ]);
             }
         }
