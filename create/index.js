@@ -70,7 +70,9 @@ if (doRewrite && outputFileExists) {
 if (isDryRun) {
     console.log("[DRY RUN] - Would write to ".grey + outputFile);
 } else {
+    var outputFileNoUrls = outputFile + ".norules.txt";
     fs.writeFileSync(outputFile, '');
+    fs.writeFileSync(outputFileNoUrls, '');
 }
 
 
@@ -124,7 +126,9 @@ var _process_row = function( row ) {
     var score = Number( row[0] );
     var from = url.parse(row[1]);
     var to = url.parse(row[2]);
-    var section = row[3];
+    var fromSection = row[3];
+    var toSection = row[4]
+
     var output, outputFormatted;
 
     // Just silently fail if no from
@@ -139,17 +143,14 @@ var _process_row = function( row ) {
         outputFormatted = "RedirectMatch 301 ^".grey + from.pathname.red + " " + to.pathname.green;
     }
 
-    if (!row[2]) {
-        output = "RedirectMatch 301 " + ("^" + from.pathname) + (" /" + section);
-        outputFormatted = "RedirectMatch 301 ".grey + ("^" + from.pathname).red + (" /" + section).green;
+    if (!row[2] && toSection) {
+        output = "RedirectMatch 301 " + ("^" + from.pathname) + (" /" + toSection);
+        outputFormatted = "RedirectMatch 301 ".grey + ("^" + from.pathname).red + (" /" + toSection).green;
+    } else if (!toSection) {
+        // console.log( fromSection, toSection );
     }
-
 
     count++;
-
-    if (argv.v) {
-        console.log( outputFormatted );
-    }
 
     // Suffix with a line
     if (output) {
@@ -162,9 +163,19 @@ var _process_row = function( row ) {
 
             });
         }
-    } else if (argv.v) {
-        console.log( "No output for ".grey + from.href.red  )
+    } else {
+
+        if (argv.v) {
+            console.log( "No rule for ".grey + from.href.white.bgRed  );
+        }
+
+        if (!isDryRun) {
+
+            fs.appendFile( outputFileNoUrls, from.href + "\n", function(err) {
+            });
+        }
     }
+
 };
 /*=====  End of Process data to htaccess  ======*/
 
