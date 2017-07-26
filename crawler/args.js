@@ -57,7 +57,7 @@ output.urlObject = url.parse( output.url );
 if (argv.o) {
     output.logfile = process.cwd() + path.sep + argv.o;
 } else if (!output.hasOwnProperty('logfile')) {
-    output.logfile = process.cwd() + '/output/' + output.urlObject.hostname + ".csv";
+    output.logfile = process.cwd() + path.sep + output.urlObject.hostname + ".csv";
 }
 
 
