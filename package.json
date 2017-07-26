@@ -9,7 +9,8 @@
   "bin": {
     "ht-crawler": "./crawler/index.js",
     "ht-process": "./process/index.js",
-    "ht-create": "./create/index.js"
+    "ht-create": "./create/index.js",
+    "ht-checker": "./checker/index.js"
   },
   "author": "",
   "license": "ISC",

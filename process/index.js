@@ -9,7 +9,7 @@ const extend = require('extend');
 const path = require('path');
 const stringify = csv.stringify;
 const parse =  require('csv-parse');
-
+const fileChecker = require('../utils/file-checker');
 
 const y = require('yargs')
     .usage('Usage: $0 oldsite.csv newsite.csv')
@@ -18,8 +18,6 @@ const y = require('yargs')
     .help('h');
 
 const argv = y.argv;
-
-console.log( process.cwd() );
 
 const file1 = process.cwd() + path.sep + argv._[0];
 const file2 = process.cwd() + path.sep + argv._[1];
@@ -37,44 +35,17 @@ if (!fs.existsSync( file2 ))
     process.exit();
 }
 
-var _readFile = function( inputFile, resolve, rej ) {
 
-    console.log( inputFile );
-
-    var parser = parse({relax_column_count: true});
-    var output = [];
-
-    parser.on('readable', function(){
-        while(record = parser.read()){
-            // console.log( record );
-            output.push(record);
-        }
-    });
-
-    var input = fs.readFile( inputFile, (err, data) => {
-        parser.write( data );
-         resolve();
-    });
-
-    parser.on('error', function(err){
-        console.log( "Error", err );
-        rej();
-        process.exit();
-    });
-
-    return output;
-
-};
 
 var output1;
 var output2;
 
 var p1 = new Promise(function( res, rej ) {
-    output1 = _readFile( file1, res, rej);
+    output1 = fileChecker.readCsv( file1, res, rej);
 });
 
-var p2 = new Promise(function( res, rej, rej ) {
-   output2 = _readFile( file2, res );
+var p2 = new Promise(function( res, rej ) {
+    output2 = fileChecker.readCsv( file2, res, rej);
 });
 
 

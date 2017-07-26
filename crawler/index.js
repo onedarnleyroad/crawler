@@ -130,12 +130,12 @@ c = new Crawler( crawlerOptions );
 
 c.queue( parent );
 
-c.on('drain', function() {
-    console.log("Done?");
-    stringify(data, function(err, output){
-        process.exit();
-    });
+// c.on('drain', function() {
+//     console.log("Done?");
+//     stringify(data, function(err, output){
+//         process.exit();
+//     });
 
-});
+// });
 
 
