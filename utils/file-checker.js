@@ -3,6 +3,7 @@ const fs = require('fs');
 const colors = require('colors');
 const url = require('url');
 const parse =  require('csv-parse');
+const path = require('path');
 
 // Store the timestamp so it syncs on inclusion of this script.
 var timestamp = new Date().getTime();

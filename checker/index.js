@@ -16,6 +16,7 @@ const y = require('yargs')
     .describe('o', 'Output to this file'.blue)
     .describe('d', 'Dry run - don\'t write to a file'.blue)
     .describe('v', 'Verbose(ish) Mode'.blue)
+    .describe('n', 'Skip records, 0 for starting with first record, 1 for second record etc'.blue)
     .describe('e', 'Only log errors, eg 404 or 500'.blue)
     .describe('w', 'overwrite existing files (appends timestamp if omitted)'.blue)
     .demandOption(['i','o','t'])
@@ -30,6 +31,8 @@ const _outputFile = process.cwd() + path.sep + argv.o;
 const doRewrite = argv.w;
 const isDryRun = argv.d;
 const targetUrl = argv.t;
+
+var skipN = (typeof argv.n === 'number') ? argv.n : 0;
 
 const fileChecker = require('../utils/file-checker.js');
 
@@ -49,7 +52,7 @@ if (!Target.protocol) {
 
 var results = [], input = [];
 
-var _process = function(error, result, done) {
+var _process = function(error, result, done, afterDone) {
     if (error) {
         console.log( error );
     } else {
@@ -70,17 +73,24 @@ var _process = function(error, result, done) {
             fCode = ("" + result.statusCode).green;
         }
 
+         if (result.options.uri != result.request.uri.href) {
+            var redirect = true;
+        } else {
+            var redirect = false;
+        }
+
         if (argv.v) {
-            console.log( ((isError) ? "err".red : " ok".green), fCode, "Crawling:".grey + result.request.uri.href );
+            console.log( ((isError) ? "err".red : " ok".green), fCode, "Crawling:".grey + result.request.uri.href, result.options.uri.blue );
         }
 
 
         if (isError || !argv.e) {
 
             var row = [
-                result.statusCode,
+                "" + result.statusCode,
                 (isError) ? "error" : "ok",
-                result.request.uri.href
+                "" + result.request.uri.href,
+                "" + result.options.uri
             ];
 
             // If we need this:
@@ -97,6 +107,7 @@ var _process = function(error, result, done) {
     }
 
     done();
+    afterDone();
 };
 
 var c = new Crawler( {
@@ -108,13 +119,47 @@ var c = new Crawler( {
         // generally allow the task to complete.
 
         // setting false means it'll not limit and have more than one connection.
-        rateLimits: 5,
+        rateLimits: false,
 
         // if rateLimits is anything other than false this is ignored.
-        maxConnections: 10,
-
-        callback: _process
+        maxConnections: 10
 } );
+
+
+var _queue = function( i ) {
+
+
+    if (i === input.length) {
+        console.log("done");
+        return;
+    } else {
+        console.log( i, input.length );
+    }
+
+    var row = input[i];
+
+    var thisUrl = url.parse( row[0] );
+    thisUrl.host = Target.host;
+
+    var toQueue = url.format( thisUrl );
+    if (argv.v) {
+        console.log( "Queueing ".grey + toQueue );
+    }
+
+    i = i + 1;
+    console.log( i );
+
+    c.queue( [{
+        uri: toQueue,
+        callback: function( e, r, d ) {
+            _process( e, r, d, function() {
+                console.log("Crawled " + (i+1) + "/" + input.length + " urls");
+            });
+        }
+    }]);
+
+    _queue( i );
+};
 
 
 var readInput = new Promise(function( res, rej ) {
@@ -123,18 +168,7 @@ var readInput = new Promise(function( res, rej ) {
 
 readInput.then( () => {
     /* etc */
-    input.forEach( function( row ) {
-
-        var thisUrl = url.parse( row[0] );
-        thisUrl.host = Target.host;
-
-        var toQueue = url.format( thisUrl );
-        if (argv.v) {
-            console.log( "Queueing ".grey + toQueue );
-        }
-        c.queue( toQueue );
-
-    });
+    _queue( skipN );
 });
 
 

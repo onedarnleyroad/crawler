@@ -19,8 +19,10 @@ const y = require('yargs')
 
 const argv = y.argv;
 
-const file1 = process.cwd() + path.sep + argv._[0];
-const file2 = process.cwd() + path.sep + argv._[1];
+// Yes this is confusing, I should change it but oldsite newsite makes
+// more sense in args, but the code in 'compare' is very much b is old.
+const file2 = process.cwd() + path.sep + argv._[0];
+const file1 = process.cwd() + path.sep + argv._[1];
 
 
 if (!fs.existsSync( file1 ))

@@ -1,5 +1,5 @@
 {
-  "name": "crawler",
+  "name": "ht-crawler",
   "version": "1.0.0",
   "description": "one darnley road cralwer",
   "main": "index.js",
@@ -16,6 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "colors": "^1.1.2",
+    "crawler": "^1.0.5",
     "csv": "^1.1.1",
     "csv-parse": "^1.2.0",
     "extend": "^3.0.1",

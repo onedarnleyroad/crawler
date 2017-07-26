@@ -19,8 +19,6 @@ console.log( "Crawling ".grey + parent + "...".green);
 var data = [];
 var c;
 
-
-
 /*----------  Create File for Writing  ----------*/
 
 if (!config.dryRun) {
@@ -125,17 +123,16 @@ var crawlerOptions = extend({}, config.crawler, {
     callback: callback
 });
 
-
 c = new Crawler( crawlerOptions );
 
 c.queue( parent );
 
-// c.on('drain', function() {
-//     console.log("Done?");
-//     stringify(data, function(err, output){
-//         process.exit();
-//     });
+c.on('drain', function() {
+    console.log("Done?");
+    stringify(data, function(err, output){
+        process.exit();
+    });
 
-// });
+});
 
 
